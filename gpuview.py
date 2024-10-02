@@ -155,10 +155,16 @@ if __name__ == '__main__':
 
     myargs = parser.parse_args()
     if myargs.test:
-        print(get_gpu_stats(myargs.test))
+        print(dict(get_gpu_stats(myargs.test)))
         sys.exit(os.EX_OK)
 
     logger = URLogger(logfile=logfile, level=myargs.loglevel)
+
+    try:
+        with open(configfile, 'rb') as f:
+            myargs.config=tomllib.load(f)
+    except FileNotFoundError as e:
+        myargs.config={}
 
     try:
         outfile = sys.stdout if not myargs.output else open(myargs.output, 'w')
