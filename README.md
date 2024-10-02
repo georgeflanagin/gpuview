@@ -19,6 +19,17 @@ same directory with the program, itself. The primary data in the TOML file is a 
 hosts where the program is to collect the data. `gpuview` can be used on localhost, but there
 are many ways to get GPU use statistics for the local computer. 
 
+### Command line options
+
+`--test {hostname}` -- this option supersedes all others, and executes the core code to gather
+data exactly once, prints the result to `stdout`, and then terminates.
+
+`-o {filename}` -- redirects `stdout` to the named file. 
+
+`--zap` -- remove old records from `gpuview.log` before writing the first new logfile record.
+
+`
+
 ### Running gpuview
 
 ```bash
