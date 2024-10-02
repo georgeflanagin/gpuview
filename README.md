@@ -24,13 +24,18 @@ are many ways to get GPU use statistics for the local computer.
 `--test {hostname}` -- this option supersedes all others, and executes the core code to gather
 data exactly once, prints the result to `stdout`, and then terminates.
 
-`-o {filename}` -- redirects `stdout` to the named file. 
+----------------
+
+`--num-readings` -- number of observations to make. The default is `sys.maxsize`, which is to say, "a lot."
+
+`--output {filename}` -- redirects `stdout` to the named file. 
+
+`--time` -- the number of seconds to wait between each query. 
 
 `--zap` -- remove old records from `gpuview.log` before writing the first new logfile record.
-
-`
 
 ### Running gpuview
 
 ```bash
+`gpuview`
 ```
