@@ -9,7 +9,8 @@ a glance.
 ### Requirements
 
 `gpuview` makes use of the code library from University of Richmond named `hpclib`. It is available
-at 
+at https://github.com/georgeflanagin/hpclib and a number of other locations. Python 3.11 is the 
+minimum required version.
 
 ### The configuration file. 
 
