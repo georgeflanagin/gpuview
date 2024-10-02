@@ -26,6 +26,8 @@ data exactly once, prints the result to `stdout`, and then terminates.
 
 ----------------
 
+`--loglevel` -- Any of the standard Python logging levels work. The default is `logging.INFO`.
+
 `--num-readings` -- number of observations to make. The default is `sys.maxsize`, which is to say, "a lot."
 
 `--output {filename}` -- redirects `stdout` to the named file. 
