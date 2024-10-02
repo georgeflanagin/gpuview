@@ -66,13 +66,13 @@ __license__ = 'MIT'
 
 
 @trap
-def xml_to_tree(element:object) -> SloppyTree:
+def xml_to_tree(XMLelement:object) -> SloppyTree:
     """
     Translate XML tags/text into SloppyTree nodes and leaves.
     Note that all XML attributes are discarded.
     """
     data = SloppyTree()
-    for child in element:
+    for child in XMLelement:
         data[child.tag] = xml_to_tree(child) if len(child) else child.text
     return data
 
@@ -81,10 +81,15 @@ def xml_to_tree(element:object) -> SloppyTree:
 def get_gpu_stats(target:str=None) -> SloppyTree:
     """
     target -- can be a hostname or a user@hostname string.
+
+    returns -- a SloppyTree containing the data retrieved. Returns
+        an empty SloppyTree if there is no available data.
     """
+
     cmd = """nvidia-smi -q --xml-format"""
     if target and target not in ('localhost', here):
         cmd = f"ssh {target} '{cmd}'"
+
     result = dorunrun(cmd)
     if not result['OK']:
         logger.error(f'No stats for {target}. {result}')
@@ -94,7 +99,25 @@ def get_gpu_stats(target:str=None) -> SloppyTree:
 
 
 @trap
+def gather_data(myargs:argparse.Namespace) -> bool:
+    return True
+
+@trap
 def gpuview_main(myargs:argparse.Namespace) -> int:
+    """
+    Collect the info based on the parameters given in the toml file.
+    """
+
+    try:
+        i = 0
+        while gather_data(myargs) and (i:= i+1) < myargs.num_readings:
+            time.sleep(myargs.time)
+
+    except KeyboardInterrupt:
+        logger.info("You pressed control-C !")
+        sys.exit(os.EX_OK)
+
+
     return os.EX_OK
 
 
@@ -109,6 +132,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="gpuview",
         description="What gpuview does, gpuview does best.")
 
+
+    parser.add_argument('-n', '--num-readings', type=int, default=sys.maxsize,
+        help="Number of readings to make. Default is not to stop.")
+
     parser.add_argument('--loglevel', type=int,
         choices=range(logging.FATAL, logging.NOTSET, -10),
         default=logging.DEBUG,
@@ -117,10 +144,20 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output', type=str, default="",
         help="Output file name")
 
+    parser.add_argument('--test', type=str, default="",
+        help="Specify a host to test with, as opposed to the hosts in the toml file.")
+
+    parser.add_argument('-t', '--time', type=int, default=60,
+        help="Number of seconds to wait between readings.")
+
     parser.add_argument('-z', '--zap', action='store_true',
         help="Remove old log file and create a new one.")
 
     myargs = parser.parse_args()
+    if myargs.test:
+        print(get_gpu_stats(myargs.test))
+        sys.exit(os.EX_OK)
+
     logger = URLogger(logfile=logfile, level=myargs.loglevel)
 
     try:
