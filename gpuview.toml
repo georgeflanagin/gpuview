@@ -1,5 +1,3 @@
-outfile = "gpuview.out"
-
 keepers = [ "fb_memory_usage.total",
             "fb_memory_usage.used",
             "gpu_module_id",
@@ -8,4 +6,6 @@ keepers = [ "fb_memory_usage.total",
             "temperature.gpu_temp",
             "timestamp" ]
 
+outfile = "gpuview.out"
 
+toolname = "nvidia-smi -q --xml-format"

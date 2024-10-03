@@ -98,8 +98,9 @@ def get_gpu_stats(target:str=None) -> SloppyTree:
     returns -- a SloppyTree containing the data retrieved. Returns
         an empty SloppyTree if there is no available data.
     """
+    global myargs
 
-    cmd = """nvidia-smi -q --xml-format"""
+    cmd = myargs.config.toolname
     if target and target not in ('localhost', here):
         cmd = f"ssh {target} '{cmd}'"
 
