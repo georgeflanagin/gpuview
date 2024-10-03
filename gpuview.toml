@@ -1,0 +1,11 @@
+outfile = "gpuview.out"
+
+keepers = [ "fb_memory_usage.total",
+            "fb_memory_usage.used",
+            "gpu_module_id",
+            "gpu_power_readings.power_draw",
+            "product_name",
+            "temperature.gpu_temp",
+            "timestamp" ]
+
+

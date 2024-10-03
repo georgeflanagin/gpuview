@@ -21,8 +21,10 @@ if sys.version_info < min_py:
 import argparse
 from   collections.abc import *
 import contextlib
+import curses
 import getpass
 import logging
+import pickle
 import socket
 import tomllib
 import xml.etree.ElementTree as ET
@@ -51,6 +53,7 @@ from   urlogger import URLogger
 mynetid = getpass.getuser()
 here = socket.gethostname()
 logger = None
+myargs = None
 
 ###
 # Credits
@@ -78,6 +81,16 @@ def xml_to_tree(XMLelement:object) -> SloppyTree:
 
 
 @trap
+def create_screen() -> None:
+    return
+
+
+@trap
+def display_screen() -> None:
+    return
+
+
+@trap
 def get_gpu_stats(target:str=None) -> SloppyTree:
     """
     target -- can be a hostname or a user@hostname string.
@@ -100,12 +113,77 @@ def get_gpu_stats(target:str=None) -> SloppyTree:
 
 @trap
 def gather_data(myargs:argparse.Namespace) -> bool:
+    """
+    Collect the info based on the parameters given in the toml file.
+    """
+    hosts = myargs.config.hosts
+
+    # Remove any old data if there are any.
+    try:
+        os.unlink(myargs.config.outfile)
+    except:
+        pass
+
+    # Query each host on a separate thread.
+    children = set()
+    for host in hosts:
+        if (pid := os.fork()):
+            children.add(pid)
+            continue
+
+        try:
+            write_result(scrub_result(get_gpu_stats(host)))
+
+        finally:
+            os._exit()
+
+    # Wait for results
+    while children:
+        try:
+            child_pid, exit_status, usage = os.wait3(0)
+            children.remove(child_pid)
+            logger.info(f"{child_pid} finished with {exit_status=}")
+
+        except KeyboardInterrupt as e:
+            logger.error(f"You pressed control-C")
+
+    # Build display
+    create_screen()
+    display_screen()
+
     return True
+
+
+@trap
+def scrub_result(data:SloppyTree) -> SloppyTree:
+    """
+    Remove the uninteresting leaves.
+    """
+    t = SloppyTree()
+
+    global myargs
+    for key in myargs.config.keepers:
+        t[key.split('.')[-1]] = data(key)
+
+    return t
+
+
+
+@trap
+def write_result(data:SloppyTree) -> None:
+    global myargs
+
+    with open(myargs.config.outfile, 'ab') as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        pickle.dump(dict(data), f)
+        f.close()
+
+    return
 
 @trap
 def gpuview_main(myargs:argparse.Namespace) -> int:
     """
-    Collect the info based on the parameters given in the toml file.
+    Set up the basic operation.
     """
 
     try:
