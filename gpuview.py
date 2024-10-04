@@ -22,10 +22,12 @@ import argparse
 from   collections.abc import *
 import contextlib
 import curses
+import enum
 import getpass
 import logging
 import pickle
 import socket
+import time
 import tomllib
 import xml.etree.ElementTree as ET
 
@@ -38,8 +40,9 @@ import pynvml
 # From hpclib
 ###
 from   dorunrun import dorunrun
+import fileutils
 import linuxutils
-from   sloppytree import SloppyTree
+from   sloppytree import SloppyTree, SloppyException
 from   urdecorators import trap
 from   urlogger import URLogger
 
@@ -54,6 +57,13 @@ mynetid = getpass.getuser()
 here = socket.gethostname()
 logger = None
 myargs = None
+
+class Keys(enum.IntEnum):
+    ESC  = 27
+    HELP = ord('h')
+    QUIT = ord('q')
+
+class UserRequestedExit(Exception): pass
 
 ###
 # Credits
@@ -75,18 +85,15 @@ def xml_to_tree(XMLelement:object) -> SloppyTree:
     Note that all XML attributes are discarded.
     """
     data = SloppyTree()
+
     for child in XMLelement:
         data[child.tag] = xml_to_tree(child) if len(child) else child.text
     return data
 
 
 @trap
-def create_screen() -> None:
-    return
-
-
-@trap
 def display_screen() -> None:
+    # stdscr.refresh()
     return
 
 
@@ -100,7 +107,8 @@ def get_gpu_stats(target:str=None) -> SloppyTree:
     """
     global myargs
 
-    cmd = myargs.config.toolname
+    # cmd = myargs.config.toolname
+    cmd = "nvidia-smi -q --xml-format"
     if target and target not in ('localhost', here):
         cmd = f"ssh {target} '{cmd}'"
 
@@ -109,7 +117,13 @@ def get_gpu_stats(target:str=None) -> SloppyTree:
         logger.error(f'No stats for {target}. {result}')
         return SloppyTree({'error':f"get_gpu_stats failed with {result}"})
 
-    return xml_to_tree(ET.fromstring(result['stdout']))
+    xml = ET.fromstring(result['stdout'])
+    t = SloppyTree()
+    gpu_blobs = xml.findall('gpu')
+    for i, blob in enumerate(gpu_blobs):
+        t[f"gpu_{i}"] = xml_to_tree(blob)
+
+    return t
 
 
 @trap
@@ -117,7 +131,9 @@ def gather_data(myargs:argparse.Namespace) -> bool:
     """
     Collect the info based on the parameters given in the toml file.
     """
+    global logger
     hosts = myargs.config.hosts
+    logger.info(f"Gathering data from {hosts}")
 
     # Remove any old data if there are any.
     try:
@@ -133,10 +149,13 @@ def gather_data(myargs:argparse.Namespace) -> bool:
             continue
 
         try:
-            write_result(scrub_result(get_gpu_stats(host)))
+            result = None
+            result = fileutils.append_pickle(
+                scrub_result(get_gpu_stats(host))
+                )
 
         finally:
-            os._exit()
+            os._exit(os.EX_OK if result is True else os.EX_IOERR)
 
     # Wait for results
     while children:
@@ -148,11 +167,60 @@ def gather_data(myargs:argparse.Namespace) -> bool:
         except KeyboardInterrupt as e:
             logger.error(f"You pressed control-C")
 
-    # Build display
-    create_screen()
-    display_screen()
-
     return True
+
+
+@trap
+def handle_events(refresh_interval:int) -> None:
+    """
+    Keep track of the keys pressed and the timer so
+    that the user can leave or refresh before the time
+    expires.
+    """
+    # stdscr.curs_set(0)
+    # stdscr.nodelay(True)
+    # stdscr.timeout(100)
+    time.sleep(refresh_interval)
+    return
+
+    start = time.time()
+
+    while True:
+        key = Key(stdscr.getch().lower())
+        if key in (Keys.QUIT, Keys.ESC):
+            raise UserRequestedExit
+        else:
+            return
+
+        if (elapsed_time := time.time()-start) < refresh_interval:
+            continue
+
+
+@trap
+def populate_screen() -> None:
+    """
+    Take the data returned by querying the nodes, and
+    draw a screen. This is a little bit of a tedious and
+    error prone process.
+    """
+    return
+    global myargs
+
+    pickles = tuple(fileutils.extract_pickle(myargs.config.outfile))
+
+    stdscr.refresh()
+
+    # Let's get some parameters for our environment.
+    h, w = stdscr.getmaxyx()
+    stripe_height = h // len(pickles)
+
+    stripes = tuple(curses.newwin(stripe_height, w, i*stripe_height, 0)
+        for i in range(len(pickles)))
+
+    for i, stripe in enumerate(stripes, start=1):
+        stripe.addstr(1, 1, f"Stripe {i}", curses.A_BOLD)
+
+    return
 
 
 @trap
@@ -162,39 +230,52 @@ def scrub_result(data:SloppyTree) -> SloppyTree:
     """
     t = SloppyTree()
 
+    # First, we must find out how many GPUs there are
+    # for which data have been reported.
+
     global myargs
-    for key in myargs.config.keepers:
-        t[key.split('.')[-1]] = data(key)
+
+    for k in data.keys():
+        for key in myargs.config.keepers:
+            try:
+                t[k][key] = data[k](key)
+            except SloppyException as e:
+                logger.error(f"unable to find {key} in {data=}")
 
     return t
 
 
-
 @trap
-def write_result(data:SloppyTree) -> None:
-    global myargs
-
-    with open(myargs.config.outfile, 'ab') as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
-        pickle.dump(dict(data), f)
-        f.close()
-
-    return
-
-@trap
-def gpuview_main(myargs:argparse.Namespace) -> int:
+def gpuview_main(# stdscr:curses.window,
+                 myargs:argparse.Namespace) -> int:
     """
-    Set up the basic operation.
+    Set up the basic operation. Go ahead and clear the
+    screen here, as any output will mess up the display
+    after the cursor window has been opened.
     """
+    # stdscr.clear()
+    logger.info("Screen cleared.")
 
     try:
         i = 0
-        while gather_data(myargs) and (i:= i+1) < myargs.num_readings:
-            time.sleep(myargs.time)
+        while gather_data(myargs) and myargs.num_readings > i:
+            # The data have all been written to a file, so
+            # now it is time to build the display
+            i += 1
+            populate_screen()
+            display_screen()
+
+            handle_events(myargs.time)
+
+        else:
+            logger.info(f"Ended with reading {i}")
 
     except KeyboardInterrupt:
         logger.info("You pressed control-C !")
         sys.exit(os.EX_OK)
+
+    except Exception as e:
+        logger.error(f"Unexpected error: {e=}")
 
 
     return os.EX_OK
@@ -237,7 +318,6 @@ if __name__ == '__main__':
         print(dict(get_gpu_stats(myargs.test)))
         sys.exit(os.EX_OK)
 
-    logger = URLogger(logfile=logfile, level=myargs.loglevel)
 
     try:
         with open(configfile, 'rb') as f:
@@ -245,11 +325,38 @@ if __name__ == '__main__':
     except FileNotFoundError as e:
         myargs.config={}
 
+    if myargs.zap:
+        try:
+            os.unlink(logfile)
+        except:
+            pass
+
+    logger = URLogger(logfile=logfile, level=myargs.loglevel)
+    logger.info(linuxutils.dump_cmdline(myargs, True))
+    myargs.config = SloppyTree(myargs.config)
+
+
+    # Set up the full screen environment.
+    # stdscr = curses.initscr()
+
     try:
         outfile = sys.stdout if not myargs.output else open(myargs.output, 'w')
         with contextlib.redirect_stdout(outfile):
+            # Note the use of the lambda crutch to invoke the main function.
+            # sys.exit(
+            #     curses.wrapper(
+            #         lambda stdscr : globals()[f"{progname}_main"](stdscr, myargs))
+            #     )
             sys.exit(globals()[f"{progname}_main"](myargs))
 
+    except UserRequestedExit as e:
+        logger.info("User requested exit.")
+        pass
+
     except Exception as e:
-        print(f"Escaped or re-raised exception: {e}")
+        logger.info(f"Escaped or re-raised exception: {e}")
+
+    finally:
+        logger.info("Closing window")
+        # curses.endwin()
 

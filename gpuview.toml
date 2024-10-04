@@ -3,9 +3,10 @@ keepers = [ "fb_memory_usage.total",
             "gpu_module_id",
             "gpu_power_readings.power_draw",
             "product_name",
-            "temperature.gpu_temp",
-            "timestamp" ]
+            "temperature.gpu_temp" ]
 
 outfile = "gpuview.out"
 
 toolname = "nvidia-smi -q --xml-format"
+
+hosts = [ "adam", "kevin", "justin" ]
