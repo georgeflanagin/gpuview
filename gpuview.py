@@ -93,7 +93,7 @@ def xml_to_tree(XMLelement:object) -> SloppyTree:
 
 @trap
 def display_screen() -> None:
-    # stdscr.refresh()
+    stdscr.refresh()
     return
 
 
@@ -107,8 +107,7 @@ def get_gpu_stats(target:str=None) -> SloppyTree:
     """
     global myargs
 
-    # cmd = myargs.config.toolname
-    cmd = "nvidia-smi -q --xml-format"
+    cmd = myargs.config.toolname
     if target and target not in ('localhost', here):
         cmd = f"ssh {target} '{cmd}'"
 
@@ -179,11 +178,10 @@ def handle_events(refresh_interval:int) -> None:
     that the user can leave or refresh before the time
     expires.
     """
-    # stdscr.curs_set(0)
-    # stdscr.nodelay(True)
-    # stdscr.timeout(100)
+    stdscr.curs_set(0)
+    stdscr.nodelay(True)
+    stdscr.timeout(100)
     time.sleep(refresh_interval)
-    return
 
     start = time.time()
 
@@ -208,10 +206,6 @@ def populate_screen() -> None:
     global myargs
 
     pickles = tuple(fileutils.extract_pickle(myargs.config.outfile))
-
-    print(pickles)
-    return
-    stdscr.refresh()
 
     # Let's get some parameters for our environment.
     h, w = stdscr.getmaxyx()
@@ -249,7 +243,7 @@ def scrub_result(data:SloppyTree) -> SloppyTree:
 
 
 @trap
-def gpuview_main(# stdscr:curses.window,
+def gpuview_main(stdscr:curses.window,
                  myargs:argparse.Namespace) -> int:
     """
     Set up the basic operation. Go ahead and clear the
@@ -257,24 +251,24 @@ def gpuview_main(# stdscr:curses.window,
     after the cursor window has been opened.
     """
     # stdscr.clear()
-    logger.info("Screen cleared.")
+    logger.debug("Screen cleared.")
 
     try:
         i = 0
         while gather_data(myargs) and myargs.num_readings > i:
+            i += 1
             # The data have all been written to a file, so
             # now it is time to build the display
-            i += 1
             populate_screen()
             display_screen()
 
             handle_events(myargs.time)
 
         else:
-            logger.info(f"Ended with reading {i}")
+            logger.debug(f"Ended with reading {i}")
 
     except KeyboardInterrupt:
-        logger.info("You pressed control-C !")
+        logger.debug("You pressed control-C !")
         sys.exit(os.EX_OK)
 
     except Exception as e:
@@ -346,10 +340,10 @@ if __name__ == '__main__':
         outfile = sys.stdout if not myargs.output else open(myargs.output, 'w')
         with contextlib.redirect_stdout(outfile):
             # Note the use of the lambda crutch to invoke the main function.
-            # sys.exit(
-            #     curses.wrapper(
-            #         lambda stdscr : globals()[f"{progname}_main"](stdscr, myargs))
-            #     )
+            sys.exit(
+                curses.wrapper(
+                    lambda stdscr : globals()[f"{progname}_main"](stdscr, myargs))
+                )
             sys.exit(globals()[f"{progname}_main"](myargs))
 
     except UserRequestedExit as e:
@@ -361,5 +355,5 @@ if __name__ == '__main__':
 
     finally:
         logger.info("Closing window")
-        # curses.endwin()
+        curses.endwin()
 
