@@ -115,7 +115,7 @@ def get_gpu_stats(target:str=None) -> SloppyTree:
     result = dorunrun(cmd)
     if not result['OK']:
         logger.error(f'No stats for {target}. {result}')
-        return SloppyTree({'error':f"get_gpu_stats failed with {result}"})
+        return SloppyTree()
 
     xml = ET.fromstring(result['stdout'])
     t = SloppyTree()
@@ -138,6 +138,7 @@ def gather_data(myargs:argparse.Namespace) -> bool:
     # Remove any old data if there are any.
     try:
         os.unlink(myargs.config.outfile)
+        logger.info("Old data file removed.")
     except:
         pass
 
@@ -150,9 +151,10 @@ def gather_data(myargs:argparse.Namespace) -> bool:
 
         try:
             result = None
-            result = fileutils.append_pickle(
-                scrub_result(get_gpu_stats(host))
-                )
+            data = scrub_result(get_gpu_stats(host))
+            logger.info(f"{data=}")
+            result = fileutils.append_pickle(data, myargs.config.outfile)
+            logger.debug(f"append_pickle returned {result}")
 
         finally:
             os._exit(os.EX_OK if result is True else os.EX_IOERR)
@@ -203,11 +205,12 @@ def populate_screen() -> None:
     draw a screen. This is a little bit of a tedious and
     error prone process.
     """
-    return
     global myargs
 
     pickles = tuple(fileutils.extract_pickle(myargs.config.outfile))
 
+    print(pickles)
+    return
     stdscr.refresh()
 
     # Let's get some parameters for our environment.
