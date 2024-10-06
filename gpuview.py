@@ -34,7 +34,6 @@ import xml.etree.ElementTree as ET
 ###
 # Installed libraries like numpy, pandas, paramiko
 ###
-import pynvml
 
 ###
 # From hpclib
@@ -221,6 +220,32 @@ def populate_screen() -> None:
 
 
 @trap
+def proofread(config_info:SloppyTree) -> None:
+    """
+    We need a little logic checking to prevent runtime errors.
+    Best to point out the errors early. If all is well, this 
+    function simply returns. Otherwise it exits. 
+    """
+    global logger
+    required_keys = {'hosts', 'keepers', 'toolname', 'outfile'}
+
+    errors = False
+    # Check for missing keys
+    if (missing := required_keys - set(config_info.keys())):
+        logger.error(f"TOML is missing {missing}")
+        errors = True
+    
+    for host in config_info.hosts:
+        if not dorunrun(f'host {host}', return_datatype=bool):
+            logger.error(f'Host {host} is unreachable.')
+            errors = True
+
+    errors and print("There are errors in the config. Check the logfile.")
+    errors and sys.exit(os.EX_CONFIG)
+
+
+
+@trap
 def scrub_result(data:SloppyTree) -> SloppyTree:
     """
     Remove the uninteresting leaves.
@@ -331,6 +356,10 @@ if __name__ == '__main__':
     logger = URLogger(logfile=logfile, level=myargs.loglevel)
     logger.info(linuxutils.dump_cmdline(myargs, True))
     myargs.config = SloppyTree(myargs.config)
+
+    # The program will not run correctly if there are logical 
+    # errors in the config. 
+    proofread(myargs.config)
 
 
     # Set up the full screen environment.
