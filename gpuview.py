@@ -48,6 +48,8 @@ from   urlogger import URLogger
 ###
 # imports and objects that were written for this project.
 ###
+import screencode
+import screenglobals
 
 ###
 # Global objects
@@ -56,13 +58,6 @@ mynetid = getpass.getuser()
 here = socket.gethostname()
 logger = None
 myargs = None
-
-class Keys(enum.IntEnum):
-    ESC  = 27
-    HELP = ord('h')
-    QUIT = ord('q')
-
-class UserRequestedExit(Exception): pass
 
 ###
 # Credits
@@ -88,12 +83,6 @@ def xml_to_tree(XMLelement:object) -> SloppyTree:
     for child in XMLelement:
         data[child.tag] = xml_to_tree(child) if len(child) else child.text
     return data
-
-
-@trap
-def display_screen() -> None:
-    stdscr.refresh()
-    return
 
 
 @trap
@@ -171,55 +160,6 @@ def gather_data(myargs:argparse.Namespace) -> bool:
 
 
 @trap
-def handle_events(refresh_interval:int) -> None:
-    """
-    Keep track of the keys pressed and the timer so
-    that the user can leave or refresh before the time
-    expires.
-    """
-    stdscr.curs_set(0)
-    stdscr.nodelay(True)
-    stdscr.timeout(100)
-    time.sleep(refresh_interval)
-
-    start = time.time()
-
-    while True:
-        key = Key(stdscr.getch().lower())
-        if key in (Keys.QUIT, Keys.ESC):
-            raise UserRequestedExit
-        else:
-            return
-
-        if (elapsed_time := time.time()-start) < refresh_interval:
-            continue
-
-
-@trap
-def populate_screen() -> None:
-    """
-    Take the data returned by querying the nodes, and
-    draw a screen. This is a little bit of a tedious and
-    error prone process.
-    """
-    global myargs
-
-    pickles = tuple(fileutils.extract_pickle(myargs.config.outfile))
-
-    # Let's get some parameters for our environment.
-    h, w = stdscr.getmaxyx()
-    stripe_height = h // len(pickles)
-
-    stripes = tuple(curses.newwin(stripe_height, w, i*stripe_height, 0)
-        for i in range(len(pickles)))
-
-    for i, stripe in enumerate(stripes, start=1):
-        stripe.addstr(1, 1, f"Stripe {i}", curses.A_BOLD)
-
-    return
-
-
-@trap
 def proofread(config_info:SloppyTree) -> None:
     """
     We need a little logic checking to prevent runtime errors.
@@ -288,10 +228,10 @@ def gpuview_main(stdscr:curses.window,
             i += 1
             # The data have all been written to a file, so
             # now it is time to build the display
-            populate_screen()
-            display_screen()
+            screencode.populate_screen()
+            screencode.display_screen()
 
-            handle_events(myargs.time)
+            screencode.handle_events(myargs.time)
 
         else:
             logger.debug(f"Ended with reading {i}")
@@ -339,7 +279,7 @@ if __name__ == '__main__':
     parser.add_argument('-z', '--zap', action='store_true',
         help="Remove old log file and create a new one.")
 
-    myargs = parser.parse_args()
+    myargs = screenglobals.myargs = parser.parse_args()
     if myargs.test:
         print(dict(get_gpu_stats(myargs.test)))
         sys.exit(os.EX_OK)
@@ -357,7 +297,7 @@ if __name__ == '__main__':
         except:
             pass
 
-    logger = URLogger(logfile=logfile, level=myargs.loglevel)
+    logger = screenglobals.logger = URLogger(logfile=logfile, level=myargs.loglevel)
     logger.info(linuxutils.dump_cmdline(myargs, True))
     myargs.config = SloppyTree(myargs.config)
 
@@ -367,7 +307,7 @@ if __name__ == '__main__':
 
 
     # Set up the full screen environment.
-    # stdscr = curses.initscr()
+    stdscr = screenglobals.stdscr = curses.initscr()
 
     try:
         outfile = sys.stdout if not myargs.output else open(myargs.output, 'w')
@@ -379,7 +319,7 @@ if __name__ == '__main__':
                 )
             sys.exit(globals()[f"{progname}_main"](myargs))
 
-    except UserRequestedExit as e:
+    except screenglobals.UserRequestedExit as e:
         logger.info("User requested exit.")
         pass
 

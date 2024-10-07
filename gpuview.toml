@@ -1,3 +1,8 @@
+block_x_dim = 40
+block_y_dim = 16
+
+hosts = [ "adam", "kevin", "justin" ]
+
 keepers = [ "fb_memory_usage.total",
             "fb_memory_usage.used",
             "gpu_module_id",
@@ -9,4 +14,3 @@ outfile = "gpuview.out"
 
 toolname = "nvidia-smi -q --xml-format"
 
-hosts = [ "adam", "kevin", "justin" ]
