@@ -73,47 +73,6 @@ __license__ = 'MIT'
 
 
 @trap
-def xml_to_tree(XMLelement:object) -> SloppyTree:
-    """
-    Translate XML tags/text into SloppyTree nodes and leaves.
-    Note that all XML attributes are discarded.
-    """
-    data = SloppyTree()
-
-    for child in XMLelement:
-        data[child.tag] = xml_to_tree(child) if len(child) else child.text
-    return data
-
-
-@trap
-def get_gpu_stats(target:str=None) -> SloppyTree:
-    """
-    target -- can be a hostname or a user@hostname string.
-
-    returns -- a SloppyTree containing the data retrieved. Returns
-        an empty SloppyTree if there is no available data.
-    """
-    global myargs
-
-    cmd = myargs.config.toolname
-    if target and target not in ('localhost', here):
-        cmd = f"ssh {target} '{cmd}'"
-
-    result = dorunrun(cmd)
-    if not result['OK']:
-        logger.error(f'No data for {target} because {result}')
-        return SloppyTree()
-
-    xml = ET.fromstring(result['stdout'])
-    t = SloppyTree()
-    gpu_blobs = xml.findall('gpu')
-    for i, blob in enumerate(gpu_blobs):
-        t[f"gpu_{i}"] = xml_to_tree(blob)
-
-    return t
-
-
-@trap
 def gather_data(myargs:argparse.Namespace) -> bool:
     """
     Collect the info based on the parameters given in the toml file.
@@ -136,8 +95,7 @@ def gather_data(myargs:argparse.Namespace) -> bool:
 
         try:
             result = None
-            data = scrub_result(get_gpu_stats(host))
-            result = fileutils.append_pickle(data, myargs.config.outfile)
+            result = fileutils.append_pickle(scrub_result(get_gpu_stats(host)), myargs.config.outfile)
 
         finally:
             os._exit(os.EX_OK if result is True else os.EX_IOERR)
@@ -156,6 +114,40 @@ def gather_data(myargs:argparse.Namespace) -> bool:
 
 
     return True
+
+
+@trap
+def get_gpu_stats(target:str=None) -> SloppyTree:
+    """
+    target -- can be a hostname or a user@hostname string.
+
+    returns -- a SloppyTree containing the data retrieved. Returns
+        an empty SloppyTree if there is no available data.
+    """
+    global myargs
+
+    cmd = myargs.config.toolname
+    if target and target not in ('localhost', here):
+        cmd = f"ssh {target} '{cmd}'"
+
+    result = dorunrun(cmd)
+    if not result['OK']:
+        logger.error(f'No data for {target} because {result}')
+        return SloppyTree()
+
+    xml = ET.fromstring(result['stdout'])
+    
+    ###
+    # No surprise that we are interested in the gpu stats.
+    # All the gpu data are in a key whose name is 'gpu'. This 
+    # works just fine in XML, but keys must have unique names
+    # in Python dicts.
+    ###
+    t = SloppyTree()
+    for i, blob in enumerate(xml.findall('gpu')):
+        t[f"gpu_{i}"] = xml_to_tree(blob)
+
+    return t
 
 
 @trap
@@ -203,9 +195,6 @@ def scrub_result(data:SloppyTree) -> SloppyTree:
     """
     t = SloppyTree()
 
-    # First, we must find out how many GPUs there are
-    # for which data have been reported.
-
     global myargs
 
     for k in data.keys():
@@ -216,6 +205,19 @@ def scrub_result(data:SloppyTree) -> SloppyTree:
                 logger.error(f"unable to find {key} in {data=}")
 
     return t
+
+
+@trap
+def xml_to_tree(XMLelement:object) -> SloppyTree:
+    """
+    Translate XML tags/text into SloppyTree nodes and leaves.
+    Note that all XML attributes are discarded.
+    """
+    data = SloppyTree()
+
+    for child in XMLelement:
+        data[child.tag] = xml_to_tree(child) if len(child) else child.text
+    return data
 
 
 @trap
