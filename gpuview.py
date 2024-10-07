@@ -48,8 +48,8 @@ from   urlogger import URLogger
 ###
 # imports and objects that were written for this project.
 ###
-import screencode
 import screenglobals
+import screencode
 
 ###
 # Global objects
@@ -101,7 +101,7 @@ def get_gpu_stats(target:str=None) -> SloppyTree:
 
     result = dorunrun(cmd)
     if not result['OK']:
-        logger.error(f'No stats for {target}. {result}')
+        logger.error(f'No data for {target} because {result}')
         return SloppyTree()
 
     xml = ET.fromstring(result['stdout'])
@@ -120,12 +120,10 @@ def gather_data(myargs:argparse.Namespace) -> bool:
     """
     global logger
     hosts = myargs.config.hosts
-    logger.info(f"Gathering data from {hosts}")
 
     # Remove any old data if there are any.
     try:
         os.unlink(myargs.config.outfile)
-        logger.info("Old data file removed.")
     except:
         pass
 
@@ -139,9 +137,7 @@ def gather_data(myargs:argparse.Namespace) -> bool:
         try:
             result = None
             data = scrub_result(get_gpu_stats(host))
-            logger.info(f"{data=}")
             result = fileutils.append_pickle(data, myargs.config.outfile)
-            logger.debug(f"append_pickle returned {result}")
 
         finally:
             os._exit(os.EX_OK if result is True else os.EX_IOERR)
@@ -151,10 +147,13 @@ def gather_data(myargs:argparse.Namespace) -> bool:
         try:
             child_pid, exit_status, usage = os.wait3(0)
             children.remove(child_pid)
-            logger.info(f"{child_pid} finished with {exit_status=}")
+            logger.debug(f"{child_pid} finished with {exit_status=}")
 
         except KeyboardInterrupt as e:
-            logger.error(f"You pressed control-C")
+            logger.debug(f"You pressed control-C")
+    else:
+        logger.debug('while terminated normally.')
+
 
     return True
 
@@ -227,7 +226,7 @@ def gpuview_main(stdscr:curses.window,
     screen here, as any output will mess up the display
     after the cursor window has been opened.
     """
-    # stdscr.clear()
+    stdscr.clear()
     logger.debug("Screen cleared.")
 
     try:
@@ -236,10 +235,10 @@ def gpuview_main(stdscr:curses.window,
             i += 1
             # The data have all been written to a file, so
             # now it is time to build the display
-            screencode.populate_screen()
-            screencode.display_screen()
+            screencode.populate_screen(myargs, stdscr, logger)
+            screencode.display_screen(stdscr, logger)
 
-            screencode.handle_events(myargs.time)
+            screencode.handle_events(myargs.time, stdscr, logger)
 
         else:
             logger.debug(f"Ended with reading {i}")
@@ -287,7 +286,7 @@ if __name__ == '__main__':
     parser.add_argument('-z', '--zap', action='store_true',
         help="Remove old log file and create a new one.")
 
-    myargs = screenglobals.myargs = parser.parse_args()
+    myargs = parser.parse_args()
     if myargs.test:
         print(dict(get_gpu_stats(myargs.test)))
         sys.exit(os.EX_OK)
@@ -305,7 +304,7 @@ if __name__ == '__main__':
         except:
             pass
 
-    logger = screenglobals.logger = URLogger(logfile=logfile, level=myargs.loglevel)
+    logger = URLogger(logfile=logfile, level=myargs.loglevel)
     logger.info(linuxutils.dump_cmdline(myargs, True))
     myargs.config = SloppyTree(myargs.config)
 
@@ -315,7 +314,7 @@ if __name__ == '__main__':
 
 
     # Set up the full screen environment.
-    stdscr = screenglobals.stdscr = curses.initscr()
+    stdscr = curses.initscr()
 
     try:
         outfile = sys.stdout if not myargs.output else open(myargs.output, 'w')

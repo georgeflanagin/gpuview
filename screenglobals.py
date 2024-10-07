@@ -21,11 +21,6 @@ import enum
 ###
 # Keep these objects handy across modules.
 ###
-
-logger = None
-myargs = None
-stdscr = None
-
 class Keys(enum.IntEnum):
     ESC  = 27
     HELP = ord('h')
