@@ -167,7 +167,8 @@ def proofread(config_info:SloppyTree) -> None:
     function simply returns. Otherwise it exits.
     """
     global logger
-    required_keys = {'hosts', 'keepers', 'toolname', 'outfile'}
+    required_keys = {'hosts', 'keepers', 'toolname', 'outfile',
+                    'block_x_dim', 'block_y_dim'}
 
     errors = False
     # Check for missing keys
@@ -184,9 +185,16 @@ def proofread(config_info:SloppyTree) -> None:
             logger.error(f'Host {host} is unreachable.')
             errors = True
 
+    try:
+        if not 0 < int(config_info.block_y_dim) < int(config_info.block_x_dim):
+            logger.error("Bad block dimensions.")
+            errors = True
+    except:
+        logger.error("Block dimensions must be numeric.")
+        errors = True
+
     errors and print("There are errors in the config. Check the logfile.")
     errors and sys.exit(os.EX_CONFIG)
-
 
 
 @trap
