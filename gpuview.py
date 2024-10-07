@@ -223,8 +223,8 @@ def populate_screen() -> None:
 def proofread(config_info:SloppyTree) -> None:
     """
     We need a little logic checking to prevent runtime errors.
-    Best to point out the errors early. If all is well, this 
-    function simply returns. Otherwise it exits. 
+    Best to point out the errors early. If all is well, this
+    function simply returns. Otherwise it exits.
     """
     global logger
     required_keys = {'hosts', 'keepers', 'toolname', 'outfile'}
@@ -234,7 +234,11 @@ def proofread(config_info:SloppyTree) -> None:
     if (missing := required_keys - set(config_info.keys())):
         logger.error(f"TOML is missing {missing}")
         errors = True
-    
+
+    if (extra := set(config_info.keys()) - required_keys):
+        logger.error(f"Unknown key[s] found in TOML: {extra}")
+        errors = True
+
     for host in config_info.hosts:
         if not dorunrun(f'host {host}', return_datatype=bool):
             logger.error(f'Host {host} is unreachable.')
@@ -357,8 +361,8 @@ if __name__ == '__main__':
     logger.info(linuxutils.dump_cmdline(myargs, True))
     myargs.config = SloppyTree(myargs.config)
 
-    # The program will not run correctly if there are logical 
-    # errors in the config. 
+    # The program will not run correctly if there are logical
+    # errors in the config.
     proofread(myargs.config)
 
 
