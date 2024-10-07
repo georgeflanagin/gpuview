@@ -27,7 +27,6 @@ import getpass
 import logging
 import pickle
 import socket
-import time
 import tomllib
 import xml.etree.ElementTree as ET
 
@@ -64,7 +63,7 @@ myargs = None
 ###
 __author__ = 'George Flanagin'
 __copyright__ = 'Copyright 2024, University of Richmond'
-__credits__ = None
+__credits__ = 'UI design by Skyler.He@richmond.edu'
 __version__ = 0.1
 __maintainer__ = 'George Flanagin'
 __email__ = f'gflanagin@richmond.edu'
