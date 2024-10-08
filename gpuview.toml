@@ -1,14 +1,20 @@
 block_x_dim = 40
 block_y_dim = 16
 
-hosts = [ "localhost" ]
+hosts = [ "localhost", "justin", "boyi", "adam", "irene2", "kevin" ]
 
 keepers = [ "fb_memory_usage.total",
+            "fb_memory_usage.reserved",
+            "fb_memory_usage.free",
             "fb_memory_usage.used",
             "gpu_module_id",
             "gpu_power_readings.power_draw",
             "product_name",
-            "temperature.gpu_temp" ]
+            "fan_speed",
+            "module_power_readings.power_draw",
+            "module_power_readings.default_power_limit",
+            "temperature.gpu_temp",
+            "temperature.gpu_target_temperature" ]
 
 outfile = "gpuview.out"
 

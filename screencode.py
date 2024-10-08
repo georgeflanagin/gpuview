@@ -60,38 +60,33 @@ __license__ = 'MIT'
 
 
 @trap
-def display_screen(stdscr:curses.window,
-                    logger:URLogger) -> None:
-
-    curses.panel.update_panels()
-    stdscr.refresh()
-
-    return
-
-
-@trap
 def handle_events(refresh_interval:float,
                 stdscr:curses.window,
                 logger:URLogger) -> int:
 
-    start = time.time()
-    stdscr.nodelay(True)  # Make getch() non-blocking
-    stdscr.timeout(100)  # Timeout for getch() in milliseconds
-    key = -1
+    time.sleep(60)
+    logger.info("Waited for Godot.")
 
-    while True:
-        # If we have waited long enough, return control to the
-        # rest of the program.
-        if (now := time.time()) - start >= refresh_interval:
-            logger.info("Waited for Godot.")
-            return
+    return 0
 
-        # Check for key press (non-blocking)
-        if (key := stdscr.getch()) == -1:
-            time.sleep(0.1)
-            continue
+@trap
+def block_and_panel(h:int, w:int, y:int, x:int, initial_text:str="") -> tuple:
+    """
+    Build screen regions to hold data.
 
-        return key
+    h - height of the region
+    w - width of the region
+    y - vertical offset of the top-left corner.
+    x - horizontal offset of the top-left corner.
+    initial_text - handy for debugging; usually blank.
+
+    """
+    block = curses.newwin(h, w, y, x)
+    block.box()
+    if initial_text: block.addstr(1, 1, initial_text)
+    panel = curses.panel.new_panel(block)
+    return block, panel
+
 
 @trap
 def populate_screen(myargs:argparse.Namespace,
@@ -106,9 +101,8 @@ def populate_screen(myargs:argparse.Namespace,
 
     params = myargs.config
 
-
     pickles = tuple(fileutils.extract_pickle(myargs.config.outfile))
-    logger.debug(f'{len(pickles)} extracted.')
+    logger.debug(f'{len(pickles)} pickles extracted.')
 
     # Let's get some parameters for our environment. At this point
     # we are more interested in the width of the screen than the
@@ -119,17 +113,22 @@ def populate_screen(myargs:argparse.Namespace,
     # Number of rows we need.
     block_rows = len(pickles) // block_columns
     # Build 'em
-    blocks = tuple(curses.newwin(params.block_y_dim,
-                      params.block_x_dim,
-                      y * params.block_y_dim,
-                      x * params.block_x_dim)
-        for y in range(block_rows) for x in range(block_columns))
-    panels = tuple(curses.panel.new_panel(_) for _ in blocks)
+    regions = tuple(
+        block_and_panel(params.block_y_dim, params.block_x_dim,
+            y * params.block_y_dim, x * params.block_x_dim, f"{pickles[y*block_columns + x][0]}")
+        for y in range(block_rows) for x in range(block_columns)
+        )
 
-    for i, block in enumerate(blocks):
-        block.box()
-        block.addstr(2, 2, f"Blurb in box {i}")
+    for y in range(block_rows):
+        for x in range(block_columns):
+            idx = y*block_columns + x
+            block = regions[idx][0]
+            tree = pickles[idx][1]
+            for i, k in enumerate(tree.keys(), start=3):
+                block.addstr(i, 3, tree[k].product_name)
 
+    curses.panel.update_panels()
+    stdscr.refresh()
     return
 
 

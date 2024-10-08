@@ -94,7 +94,11 @@ def gather_data(myargs:argparse.Namespace) -> bool:
 
         try:
             result = None
-            result = fileutils.append_pickle(scrub_result(get_gpu_stats(host)), myargs.config.outfile)
+            result = fileutils.append_pickle(
+                (host, scrub_result(get_gpu_stats(host))),
+                myargs.config.outfile)
+
+            logger.debug(f"Pickling {result=}")
 
         finally:
             os._exit(os.EX_OK if result is True else os.EX_IOERR)
@@ -108,9 +112,6 @@ def gather_data(myargs:argparse.Namespace) -> bool:
 
         except KeyboardInterrupt as e:
             logger.debug(f"You pressed control-C")
-    else:
-        logger.debug('while terminated normally.')
-
 
     return True
 
@@ -123,7 +124,7 @@ def get_gpu_stats(target:str=None) -> SloppyTree:
     returns -- a SloppyTree containing the data retrieved. Returns
         an empty SloppyTree if there is no available data.
     """
-    global myargs
+    global myargs, logger
 
     cmd = myargs.config.toolname
     if target and target not in ('localhost', here):
@@ -188,10 +189,22 @@ def proofread(config_info:SloppyTree) -> None:
 
 
 @trap
+def reduced_target(target:str) -> str:
+    """
+    Some connections may be specified as fred@host or host or
+    host.domain. For the purposes of display, we want just the
+    "host" part of the name.
+    """
+    host_part = target.split('@')[-1]
+    host_part = host_part.split('.')[0]
+
+
+@trap
 def scrub_result(data:SloppyTree) -> SloppyTree:
     """
     Remove the uninteresting leaves.
     """
+    global logger
     t = SloppyTree()
 
     global myargs
@@ -201,8 +214,10 @@ def scrub_result(data:SloppyTree) -> SloppyTree:
             try:
                 t[k][key] = data[k](key)
             except SloppyException as e:
-                logger.error(f"unable to find {key} in {data=}")
+                # logger.error(f"unable to find {key} in {data=}")
+                t[k][key] = None
 
+    logger.debug(str(dict(t)))
     return t
 
 
@@ -237,8 +252,6 @@ def gpuview_main(stdscr:curses.window,
             # The data have all been written to a file, so
             # now it is time to build the display
             screencode.populate_screen(myargs, stdscr, logger)
-            screencode.display_screen(stdscr, logger)
-
             pressed_key = screencode.handle_events(myargs.time, stdscr, logger)
             if pressed_key == ord('q'):
                 break
