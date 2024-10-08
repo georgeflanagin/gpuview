@@ -1,7 +1,7 @@
 block_x_dim = 40
 block_y_dim = 16
 
-hosts = [ "adam", "kevin", "michael", "justin" ]
+hosts = [ "localhost" ]
 
 keepers = [ "fb_memory_usage.total",
             "fb_memory_usage.used",

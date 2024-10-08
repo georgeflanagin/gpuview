@@ -135,10 +135,10 @@ def get_gpu_stats(target:str=None) -> SloppyTree:
         return SloppyTree()
 
     xml = ET.fromstring(result['stdout'])
-    
+
     ###
     # No surprise that we are interested in the gpu stats.
-    # All the gpu data are in a key whose name is 'gpu'. This 
+    # All the gpu data are in a key whose name is 'gpu'. This
     # works just fine in XML, but keys must have unique names
     # in Python dicts.
     ###
@@ -239,7 +239,9 @@ def gpuview_main(stdscr:curses.window,
             screencode.populate_screen(myargs, stdscr, logger)
             screencode.display_screen(stdscr, logger)
 
-            screencode.handle_events(myargs.time, stdscr, logger)
+            pressed_key = screencode.handle_events(myargs.time, stdscr, logger)
+            if pressed_key == ord('q'):
+                break
 
         else:
             logger.debug(f"Ended with reading {i}")

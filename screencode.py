@@ -70,31 +70,28 @@ def display_screen(stdscr:curses.window,
 
 
 @trap
-def handle_events(refresh_interval:int,
-                  stdscr:curses.window,
-                  logger:URLogger) -> None:
-    """
-    Keep track of the keys pressed and the timer so
-    that the user can leave or refresh before the time
-    expires.
-    """
+def handle_events(refresh_interval:float,
+                stdscr:curses.window,
+                logger:URLogger) -> int:
 
-    curses.curs_set(0)
-    stdscr.nodelay(True)
-    stdscr.timeout(100)
     start = time.time()
+    stdscr.nodelay(True)  # Make getch() non-blocking
+    stdscr.timeout(100)  # Timeout for getch() in milliseconds
+    key = -1
 
-    logger.debug('waiting for user action.')
     while True:
-        key = stdscr.getch()
-        if key in (Keys.QUIT, Keys.ESC):
-            raise UserRequestedExit
-        else:
+        # If we have waited long enough, return control to the
+        # rest of the program.
+        if (now := time.time()) - start >= refresh_interval:
+            logger.info("Waited for Godot.")
             return
 
-        if (elapsed_time := time.time()-start) < refresh_interval:
+        # Check for key press (non-blocking)
+        if (key := stdscr.getch()) == -1:
+            time.sleep(0.1)
             continue
 
+        return key
 
 @trap
 def populate_screen(myargs:argparse.Namespace,
