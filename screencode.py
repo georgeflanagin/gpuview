@@ -125,8 +125,21 @@ def populate_screen(myargs:argparse.Namespace,
         block = regions[i][0]
         tree = pickles[i][1]
         for i, k in enumerate(tree.keys(), start=3):
+            n = len(tree[k].product_name) + 1
             block.addstr(i, 3, tree[k].product_name)
+            block.addstr(i, 3+n, str(tree[k]["temperature.gpu_temp"]))
 
     curses.panel.update_panels()
     stdscr.refresh()
     return
+
+
+@trap
+def safe_get(t:SloppyTree, k:str, default_value:object) -> str:
+    """
+    Take care of missing values for the display.
+    """
+    try:
+        return None
+    except:
+        return None
