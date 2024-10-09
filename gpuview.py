@@ -130,7 +130,7 @@ def get_gpu_stats(target:str=None) -> SloppyTree:
     if target and target not in ('localhost', here):
         cmd = f"ssh {target} '{cmd}'"
 
-    result = dorunrun(cmd)
+    result = dorunrun(cmd, timeout=myargs.config.timeout)
     if not result['OK']:
         logger.error(f'No data for {target} because {result}')
         return SloppyTree()
@@ -159,7 +159,9 @@ def proofread(config_info:SloppyTree) -> None:
     """
     global logger
     required_keys = {'hosts', 'keepers', 'toolname', 'outfile',
-                    'block_x_dim', 'block_y_dim', 'x_offset', 'y_offset'}
+                    'block_x_dim', 'block_y_dim',
+                    'x_offset', 'y_offset', 'timeout',
+                    'red_line', 'yellow_line' }
 
     errors = False
     # Check for missing keys

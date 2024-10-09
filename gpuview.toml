@@ -1,10 +1,17 @@
+# Size of the display block for a host.
 block_x_dim = 50
 block_y_dim = 16
+
+# In case we do not want to start the display in the top left
+# corner of the screen. We can give it a little margin here.
 x_offset = 3
 y_offset = 5
 
-hosts = [ "localhost", "justin", "boyi", "adam", "spydur", "michael", "kevin" ]
+# Computers we want to talk to.
+hosts = [ "kevin", "adam", "alexis", "boyi", "camryn", "cooper", "erica", "evan", "irene2", "justin", "mayer", "michael", "sarah", "thais" ]
+# hosts = [ "localhost", "justin", "boyi", "adam", "spydur", "michael", "kevin" ]
 
+# Data we care about.
 keepers = [ "fb_memory_usage.total",
             "fb_memory_usage.reserved",
             "fb_memory_usage.free",
@@ -18,7 +25,18 @@ keepers = [ "fb_memory_usage.total",
             "temperature.gpu_temp",
             "temperature.gpu_target_temperature" ]
 
+# Temp file where the child processes syncronize the data they
+# collect from hosts.
 outfile = "gpuview.out"
 
+# Above this value, we show RED.
+red_line = 0.85
+
+# In seconds.
+timeout = 5
+
+# How we get the data.
 toolname = "nvidia-smi -q --xml-format"
 
+# Above this line, we show YELLOW.
+yellow_line = 0.7

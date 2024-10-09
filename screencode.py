@@ -104,7 +104,7 @@ def populate_screen(myargs:argparse.Namespace,
 
     params = myargs.config
 
-    pickles = tuple( fileutils.extract_pickle(myargs.config.outfile) )
+    pickles = sorted(tuple( fileutils.extract_pickle(myargs.config.outfile) ))
     logger.debug(f'{len(pickles)} pickles extracted.')
 
     # Let's get some parameters for our environment. At this point
