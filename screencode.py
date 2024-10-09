@@ -41,6 +41,7 @@ from   urlogger import URLogger
 # imports and objects that were written for this project.
 ###
 from   screenglobals import Keys, UserRequestedExit
+from   blockindex import BlockIndex
 
 ###
 # Global objects
@@ -103,7 +104,7 @@ def populate_screen(myargs:argparse.Namespace,
 
     params = myargs.config
 
-    pickles = [ fileutils.extract_pickle(myargs.config.outfile) ]
+    pickles = tuple( fileutils.extract_pickle(myargs.config.outfile) )
     logger.debug(f'{len(pickles)} pickles extracted.')
 
     # Let's get some parameters for our environment. At this point
@@ -112,35 +113,20 @@ def populate_screen(myargs:argparse.Namespace,
     h, w = stdscr.getmaxyx()
     # Number of columns that will fit the screen
     block_columns = w // params.block_x_dim
-    # Number of rows we need.
-    block_rows, remainder = divmod(len(pickles), block_columns)
+    idx = BlockIndex(block_columns, params.block_x_dim, params.block_y_dim,
+        params.x_offset, params.y_offset)
+    idx.add(len(pickles))
 
     # Build 'em
     regions = [ block_and_panel(params.block_y_dim, params.block_x_dim,
-            y * params.block_y_dim,
-            x * params.block_x_dim,
-            f"{pickles[y*block_columns + x][0]}")
-        for y in range(block_rows) for x in range(block_columns)
-        ]
+            idx[i].y, idx[i].x, f"{pickles[i][0]}") for i in range(len(pickles)) ]
 
-    # if there is a partial row, then we need to partially populate it.
-    if remainder:
-        idx = y*block_columns + 1
-        for i in remainder:
-            pickle = pickles[idx + i]
-            region = block_and_panel(params.block_y_dim, params.block_x_dim,
-            y*block_columns + 1
-
-    for y in range(block_rows):
-        for x in range(block_columns):
-            idx = y*block_columns + x
-            block = regions[idx][0]
-            tree = pickles[idx][1]
-            for i, k in enumerate(tree.keys(), start=3):
-                block.addstr(i, 3, tree[k].product_name)
+    for i in range(len(regions)):
+        block = regions[i][0]
+        tree = pickles[i][1]
+        for i, k in enumerate(tree.keys(), start=3):
+            block.addstr(i, 3, tree[k].product_name)
 
     curses.panel.update_panels()
     stdscr.refresh()
     return
-
-

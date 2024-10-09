@@ -159,7 +159,7 @@ def proofread(config_info:SloppyTree) -> None:
     """
     global logger
     required_keys = {'hosts', 'keepers', 'toolname', 'outfile',
-                    'block_x_dim', 'block_y_dim'}
+                    'block_x_dim', 'block_y_dim', 'x_offset', 'y_offset'}
 
     errors = False
     # Check for missing keys
@@ -182,6 +182,10 @@ def proofread(config_info:SloppyTree) -> None:
             errors = True
     except:
         logger.error("Block dimensions must be numeric.")
+        errors = True
+
+    if 0 > config_info.x_offset or 0 > config_info.y_offset:
+        logger.error('offsets must be non-negative')
         errors = True
 
     errors and print("There are errors in the config. Check the logfile.")
