@@ -22,24 +22,28 @@ are many ways to get GPU use statistics for the local computer.
 
 Currently, the TOML file supports these entries:
 
+`block_x_dim` -- the width of each block that displays data about a host.
+
+`block_y_dim` -- the height of the block that displays data about a host.
+
 `hosts` -- a list of hostnames to query.
 
 `keepers` -- a list of properties that this program finds interesting,
 and that this program will display.
 
 `outfile` -- name of the disk file where the queries will be recorded
-for analysis.
+for analysis. This is a temporary file that is locked and written to by each child
+process that collects data from a host.
 
 `toolname` -- the command and options that are used to retrieve the
 data from the hosts.
 
+`x_offset` -- how far over from the left edge to start the first block.
+
+`y_offset` -- how far below the top of the screen to start the first 
+row of blocks.
+
 ### Command line options
-
-`--test {hostname}` -- this option supersedes all others, and executes
-the core code to gather data exactly once, prints the result to `stdout`,
-and then terminates.
-
-----------------
 
 `--loglevel` -- Any of the standard Python logging levels work. The
 default is `logging.INFO`.
