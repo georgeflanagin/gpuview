@@ -59,6 +59,8 @@ __status__ = 'in progress'
 __license__ = 'MIT'
 
 
+
+
 @trap
 def handle_events(refresh_interval:float,
                 stdscr:curses.window,
@@ -101,7 +103,7 @@ def populate_screen(myargs:argparse.Namespace,
 
     params = myargs.config
 
-    pickles = tuple(fileutils.extract_pickle(myargs.config.outfile))
+    pickles = [ fileutils.extract_pickle(myargs.config.outfile) ]
     logger.debug(f'{len(pickles)} pickles extracted.')
 
     # Let's get some parameters for our environment. At this point
@@ -111,13 +113,23 @@ def populate_screen(myargs:argparse.Namespace,
     # Number of columns that will fit the screen
     block_columns = w // params.block_x_dim
     # Number of rows we need.
-    block_rows = len(pickles) // block_columns
+    block_rows, remainder = divmod(len(pickles), block_columns)
+
     # Build 'em
-    regions = tuple(
-        block_and_panel(params.block_y_dim, params.block_x_dim,
-            y * params.block_y_dim, x * params.block_x_dim, f"{pickles[y*block_columns + x][0]}")
+    regions = [ block_and_panel(params.block_y_dim, params.block_x_dim,
+            y * params.block_y_dim,
+            x * params.block_x_dim,
+            f"{pickles[y*block_columns + x][0]}")
         for y in range(block_rows) for x in range(block_columns)
-        )
+        ]
+
+    # if there is a partial row, then we need to partially populate it.
+    if remainder:
+        idx = y*block_columns + 1
+        for i in remainder:
+            pickle = pickles[idx + i]
+            region = block_and_panel(params.block_y_dim, params.block_x_dim,
+            y*block_columns + 1
 
     for y in range(block_rows):
         for x in range(block_columns):
