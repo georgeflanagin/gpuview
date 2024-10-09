@@ -88,6 +88,16 @@ def block_and_panel(h:int, w:int, y:int, x:int, initial_text:str="") -> tuple:
     block.box()
     l_text=len(initial_text)
     if initial_text: block.addstr(1, (w-l_text)//2, initial_text)
+
+    block.addstr(2, 3, "CPU")
+    block.addstr(3, 3, "MEM")
+    block.hline(4, 1, curses.ACS_HLINE, w-2)
+    block.addstr(5, 4, "GPU TYPE")
+    block.addstr(5, w-7, "FAN%")
+    block.addstr(5, int(w*0.3), "MEM%")
+    block.addstr(5, int(w*0.5), "WATTS")
+    block.addstr(5, int(w*0.7), "TEMP")
+
     panel = curses.panel.new_panel(block)
     return block, panel
 
@@ -127,9 +137,9 @@ def populate_screen(myargs:argparse.Namespace,
     for i in range(len(regions)):
         block = regions[i][0]
         tree = pickles[i][1]
-        for i, k in enumerate(tree.keys(), start=3):
+        for i, k in enumerate(tree.keys(), start=6):
             n = len(tree[k].product_name) + 3
-            block.addstr(i, 2, f"{i-2}: {tree[k].product_name}")
+            block.addstr(i, 2, f"{i-5} {tree[k].product_name[-8:]}")
             block.addstr(i, 4+n, str(tree[k]["temperature.gpu_temp"]))
             block.addstr(i, 4+n+7, str(tree[k]["gpu_power_readings.power_draw"]))
 

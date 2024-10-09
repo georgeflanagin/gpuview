@@ -1,6 +1,6 @@
 # Size of the display block for a host.
-block_x_dim = 50
-block_y_dim = 16
+block_x_dim = 60
+block_y_dim = 14
 
 # In case we do not want to start the display in the top left
 # corner of the screen. We can give it a little margin here.
