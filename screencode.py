@@ -86,7 +86,8 @@ def block_and_panel(h:int, w:int, y:int, x:int, initial_text:str="") -> tuple:
     """
     block = curses.newwin(h, w, y, x)
     block.box()
-    if initial_text: block.addstr(1, 1, initial_text)
+    l_text=len(initial_text)
+    if initial_text: block.addstr(1, (w-l_text)//2, initial_text)
     panel = curses.panel.new_panel(block)
     return block, panel
 
