@@ -111,13 +111,15 @@ def populate_screen(myargs:argparse.Namespace,
     # we are more interested in the width of the screen than the
     # height -- after all, we can scroll the screen vertically.
     h, w = stdscr.getmaxyx()
-    # Number of columns that will fit the screen
-    block_columns = w // params.block_x_dim
-    idx = BlockIndex(block_columns, params.block_x_dim, params.block_y_dim,
+
+    # Build the index to calculate block positions.
+    idx = BlockIndex((w - params.x_offset) // params.block_x_dim,
+        params.block_x_dim, params.block_y_dim,
         params.x_offset, params.y_offset)
+    # And add the number of blocks we need.
     idx.add(len(pickles))
 
-    # Build 'em
+    # Create the blocks. Each region is a tuple(block, panel)
     regions = [ block_and_panel(params.block_y_dim, params.block_x_dim,
             idx[i].y, idx[i].x, f"{pickles[i][0]}") for i in range(len(pickles)) ]
 
@@ -125,9 +127,10 @@ def populate_screen(myargs:argparse.Namespace,
         block = regions[i][0]
         tree = pickles[i][1]
         for i, k in enumerate(tree.keys(), start=3):
-            n = len(tree[k].product_name) + 1
-            block.addstr(i, 3, tree[k].product_name)
-            block.addstr(i, 3+n, str(tree[k]["temperature.gpu_temp"]))
+            n = len(tree[k].product_name) + 3
+            block.addstr(i, 2, f"{i-2}: {tree[k].product_name}")
+            block.addstr(i, 4+n, str(tree[k]["temperature.gpu_temp"]))
+            block.addstr(i, 4+n+7, str(tree[k]["gpu_power_readings.power_draw"]))
 
     curses.panel.update_panels()
     stdscr.refresh()
