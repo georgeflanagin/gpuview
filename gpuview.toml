@@ -1,11 +1,11 @@
 # Size of the display block for a host.
-block_x_dim = 60
+block_x_dim = 55
 block_y_dim = 14
 
 # In case we do not want to start the display in the top left
 # corner of the screen. We can give it a little margin here.
 x_offset = 3
-y_offset = 5
+y_offset = 2
 
 # Computers we want to talk to.
 hosts = [ "kevin", "adam", "alexis", "boyi", "camryn", "cooper", "erica", "evan", "irene2", "justin", "mayer", "michael", "sarah", "thais" ]

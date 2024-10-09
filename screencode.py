@@ -132,14 +132,15 @@ def populate_screen(myargs:argparse.Namespace,
 
     # Create the blocks. Each region is a tuple(block, panel)
     regions = [ block_and_panel(params.block_y_dim, params.block_x_dim,
-            idx[i].y, idx[i].x, f"{pickles[i][0]}") for i in range(len(pickles)) ]
+            idx[i].y, idx[i].x, f"{display_name(pickles[i][0])}")
+            for i in range(len(pickles)) ]
 
     for i in range(len(regions)):
         block = regions[i][0]
         tree = pickles[i][1]
         for i, k in enumerate(tree.keys(), start=6):
             n = len(tree[k].product_name) + 3
-            block.addstr(i, 2, f"{i-5} {tree[k].product_name[-8:]}")
+            block.addstr(i, 2, f"{i-5} {tree[k].product_name[-8:].strip()}")
             block.addstr(i, 4+n, str(tree[k]["temperature.gpu_temp"]))
             block.addstr(i, 4+n+7, str(tree[k]["gpu_power_readings.power_draw"]))
 
@@ -149,11 +150,9 @@ def populate_screen(myargs:argparse.Namespace,
 
 
 @trap
-def safe_get(t:SloppyTree, k:str, default_value:object) -> str:
+def display_name(s:str) -> str:
     """
-    Take care of missing values for the display.
+    Deduce the short hostname from the connection string.
     """
-    try:
-        return None
-    except:
-        return None
+    s = s.split('@')[-1]
+    return s.split('.')[0]
