@@ -85,12 +85,25 @@ def block_and_panel(h:int, w:int, y:int, x:int, initial_text:str="") -> tuple:
 
     """
     block = curses.newwin(h, w, y, x)
+    panel = curses.panel.new_panel(block)
+    return block, panel
+
+
+@trap
+def decorate_region(region:tuple, hostname:str, cores:int, mem:int) -> tuple:
+    """
+    Apply the static text to the block of a region.
+    """
+    block = region[1]
+    h, w = block.getmaxxy()
     block.box()
-    l_text=len(initial_text)
-    if initial_text: block.addstr(1, (w-l_text)//2, initial_text)
+    l_text=len(hostname)
+    if initial_text: block.addstr(1, (w-l_text)//2, hostname)
 
     block.addstr(2, 3, "CPU")
+    block.addstr(2, w-3, str(cores))
     block.addstr(3, 3, "MEM")
+    block.addstr(3, w-4, str(mem))
     block.hline(4, 1, curses.ACS_HLINE, w-2)
     block.addstr(5, 4, "GPU TYPE")
     block.addstr(5, w-7, "FAN%")
@@ -98,8 +111,7 @@ def block_and_panel(h:int, w:int, y:int, x:int, initial_text:str="") -> tuple:
     block.addstr(5, int(w*0.5), "WATTS")
     block.addstr(5, int(w*0.7), "TEMP")
 
-    panel = curses.panel.new_panel(block)
-    return block, panel
+    return block
 
 
 @trap
@@ -132,8 +144,14 @@ def populate_screen(myargs:argparse.Namespace,
 
     # Create the blocks. Each region is a tuple(block, panel)
     regions = [ block_and_panel(params.block_y_dim, params.block_x_dim,
-            idx[i].y, idx[i].x, f"{display_name(pickles[i][0])}")
+                                idx[i].y, idx[i].x)
             for i in range(len(pickles)) ]
+
+    for i, host in myargs.config.static_info.keys():
+        region[i][1] = decorate_region(region[i], host,
+            myargs.config.static_info[host].cpu,
+            myargs.config.static_info[host].mem
+            )
 
     for i in range(len(regions)):
         block = regions[i][0]

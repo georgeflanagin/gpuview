@@ -40,7 +40,7 @@ import xml.etree.ElementTree as ET
 from   dorunrun import dorunrun
 import fileutils
 import linuxutils
-from   sloppytree import SloppyTree, SloppyException
+from   sloppytree import SloppyTree, SloppyException, deepsloppy
 from   urdecorators import trap
 from   urlogger import URLogger
 
@@ -126,7 +126,7 @@ def get_gpu_stats(target:str=None) -> SloppyTree:
     """
     global myargs, logger
 
-    cmd = myargs.config.toolname
+    cmd = myargs.config.toolnames['gpu']
     if target and target not in ('localhost', here):
         cmd = f"ssh {target} '{cmd}'"
 
@@ -151,6 +151,27 @@ def get_gpu_stats(target:str=None) -> SloppyTree:
 
 
 @trap
+def get_static_info(config:SloppyTree) -> SloppyTree:
+    """
+    Before we collect dynamic data, we need the static parameters
+    of the computers we are querying.
+    """
+    global logger
+
+    t = SloppyTree()
+
+    logger.debug('gathering static data.')
+    for host in config.hosts:
+        t.host.cpu = int(dorunrun(config.toolnames.static.cpu,
+                        timeout=myargs.config.timeout,
+                        return_datatype=str))
+        t.host.mem = int(dorunrun(config.toolnames.static.mem,
+                        timeout=myargs.config.timeout,
+                        return_datatype=str).split()[1])<<20
+    return t
+
+
+@trap
 def proofread(config_info:SloppyTree) -> None:
     """
     We need a little logic checking to prevent runtime errors.
@@ -158,7 +179,7 @@ def proofread(config_info:SloppyTree) -> None:
     function simply returns. Otherwise it exits.
     """
     global logger
-    required_keys = {'hosts', 'keepers', 'toolname', 'outfile',
+    required_keys = {'hosts', 'keepers', 'toolnames', 'outfile',
                     'block_x_dim', 'block_y_dim',
                     'x_offset', 'y_offset', 'timeout',
                     'red_line', 'yellow_line' }
@@ -251,6 +272,8 @@ def gpuview_main(stdscr:curses.window,
     stdscr.clear()
     logger.debug("Screen cleared.")
 
+    myargs.static_info = get_static_info(myargs.config)
+
     try:
         i = 0
         while gather_data(myargs) and myargs.num_readings > i:
@@ -316,7 +339,7 @@ if __name__ == '__main__':
 
     try:
         with open(configfile, 'rb') as f:
-            myargs.config=tomllib.load(f)
+            myargs.config=deepsloppy(tomllib.load(f))
     except FileNotFoundError as e:
         myargs.config={}
 
