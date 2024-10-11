@@ -69,8 +69,11 @@ class BlockIndex:
         self.built = 0
 
 
+    def __len__(self) -> int:
+        return len(self.positions)
+
     def __int__(self) -> int:
-        return len(positions)
+        return len(self.positions)
 
     def add(self, n:int) -> None:
         self.positions.extend( {'x': self.x_offset + (i % self.columns) * self.x_dim,

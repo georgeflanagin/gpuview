@@ -60,8 +60,6 @@ __status__ = 'in progress'
 __license__ = 'MIT'
 
 
-
-
 @trap
 def handle_events(refresh_interval:float,
                 stdscr:curses.window,
@@ -73,7 +71,7 @@ def handle_events(refresh_interval:float,
     return 0
 
 @trap
-def block_and_panel(h:int, w:int, y:int, x:int, initial_text:str="") -> tuple:
+def block_and_panel(h:int, w:int, y:int, x:int) -> tuple:
     """
     Build screen regions to hold data.
 
@@ -81,14 +79,50 @@ def block_and_panel(h:int, w:int, y:int, x:int, initial_text:str="") -> tuple:
     w - width of the region
     y - vertical offset of the top-left corner.
     x - horizontal offset of the top-left corner.
-    initial_text - handy for debugging; usually blank.
 
     """
     block = curses.newwin(h, w, y, x)
     block.box()
-    if initial_text: block.addstr(1, 1, initial_text)
     panel = curses.panel.new_panel(block)
     return block, panel
+
+
+@trap
+def decorate_regions(idx:BlockIndex, config:SloppyTree,
+                     pickles:tuple, logger:URLogger) -> list:
+
+    logger.error(f"{dict(config)}")
+
+    hosts = config.hosts
+    regions =  [
+        block_and_panel(config.block_y_dim, config.block_x_dim, idx[i].y, idx[i].x)
+            for i in range(len(idx))
+            ]
+
+    for i, host in enumerate(sorted(hosts)):
+
+        t = pickles[i][1]
+        # logger.error(f'{t=}')
+        w = config.block_x_dim
+
+        regions[i][0].addstr(1, (config.block_x_dim - len(host))//2, host)
+        regions[i][0].addstr(2, 3, "CPU")
+        # regions[i][0].addstr(2, w-3, str(statics[host].cores))
+        regions[i][0].addstr(3, 3, "MEM")
+        # regions[i][0].addstr(3, w-4, str(statics[host].mem))
+        regions[i][0].hline(4, 1, curses.ACS_HLINE, w-2)
+        regions[i][0].addstr(5, 4, "GPU TYPE")
+        regions[i][0].addstr(5, w-7, "FAN%")
+        regions[i][0].addstr(5, int(w*0.3), "MEM%")
+        regions[i][0].addstr(5, int(w*0.5), "WATTS")
+        regions[i][0].addstr(5, int(w*0.7), "TEMP")
+
+        for j, k in enumerate(t.keys(), start=6):
+            regions[i][0].addstr(j, 2, f"{j-5} {t[k].product_name[-8:]}")
+            regions[i][0].addstr(j, 12, str(t[k]["temperature.gpu_temp"]))
+            regions[i][0].addstr(j, 19, str(t[k]["gpu_power_readings.power_draw"]))
+
+    return regions
 
 
 @trap
@@ -120,17 +154,7 @@ def populate_screen(myargs:argparse.Namespace,
     idx.add(len(pickles))
 
     # Create the blocks. Each region is a tuple(block, panel)
-    regions = [ block_and_panel(params.block_y_dim, params.block_x_dim,
-            idx[i].y, idx[i].x, f"{pickles[i][0]}") for i in range(len(pickles)) ]
-
-    for i in range(len(regions)):
-        block = regions[i][0]
-        tree = pickles[i][1]
-        for i, k in enumerate(tree.keys(), start=3):
-            n = len(tree[k].product_name) + 3
-            block.addstr(i, 2, f"{i-2}: {tree[k].product_name}")
-            block.addstr(i, 4+n, str(tree[k]["temperature.gpu_temp"]))
-            block.addstr(i, 4+n+7, str(tree[k]["gpu_power_readings.power_draw"]))
+    regions = decorate_regions(idx, myargs.config, pickles, logger)
 
     curses.panel.update_panels()
     stdscr.refresh()
