@@ -88,7 +88,7 @@ def block_and_panel(h:int, w:int, y:int, x:int) -> tuple:
 
 
 @trap
-def decorate_regions(idx:BlockIndex, config:SloppyTree,
+def decorate_regions(idx:BlockIndex, config:SloppyTree, statics:SloppyTree,
                      pickles:tuple, logger:URLogger) -> list:
 
     logger.error(f"{dict(config)}")
@@ -107,9 +107,9 @@ def decorate_regions(idx:BlockIndex, config:SloppyTree,
 
         regions[i][0].addstr(1, (config.block_x_dim - len(host))//2, host)
         regions[i][0].addstr(2, 3, "CPU")
-        # regions[i][0].addstr(2, w-3, str(statics[host].cores))
+        regions[i][0].addstr(2, w-3, str(statics[host].cores))
         regions[i][0].addstr(3, 3, "MEM")
-        # regions[i][0].addstr(3, w-4, str(statics[host].mem))
+        regions[i][0].addstr(3, w-4, str(statics[host].mem))
         regions[i][0].hline(4, 1, curses.ACS_HLINE, w-2)
         regions[i][0].addstr(5, 4, "GPU TYPE")
         regions[i][0].addstr(5, w-7, "FAN%")
@@ -154,7 +154,8 @@ def populate_screen(myargs:argparse.Namespace,
     idx.add(len(pickles))
 
     # Create the blocks. Each region is a tuple(block, panel)
-    regions = decorate_regions(idx, myargs.config, pickles, logger)
+    regions = decorate_regions(idx, myargs.config,
+        myargs.static_info, pickles, logger)
 
     curses.panel.update_panels()
     stdscr.refresh()

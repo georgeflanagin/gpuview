@@ -272,6 +272,8 @@ def gpuview_main(stdscr:curses.window,
     stdscr.clear()
     logger.debug("Screen cleared.")
 
+    myargs.static_info = get_static_info(myargs.config)
+
     try:
         i = 0
         while gather_data(myargs) and myargs.num_readings > i:
