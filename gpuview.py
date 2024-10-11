@@ -40,7 +40,7 @@ import xml.etree.ElementTree as ET
 from   dorunrun import dorunrun
 import fileutils
 import linuxutils
-from   sloppytree import SloppyTree, SloppyException
+from   sloppytree import SloppyTree, SloppyException, deepsloppy
 from   urdecorators import trap
 from   urlogger import URLogger
 
@@ -160,6 +160,8 @@ def get_static_info(config:SloppyTree) -> SloppyTree:
 
     t = SloppyTree()
 
+    logger.error(f"{config=}")
+
     logger.debug('gathering static data.')
     for host in config.hosts:
         t.host.cpu = int(dorunrun(config.toolnames.static.cpu,
@@ -179,7 +181,7 @@ def proofread(config_info:SloppyTree) -> None:
     function simply returns. Otherwise it exits.
     """
     global logger
-    required_keys = {'hosts', 'keepers', 'toolname', 'outfile',
+    required_keys = {'hosts', 'keepers', 'toolnames', 'outfile',
                     'block_x_dim', 'block_y_dim',
                     'x_offset', 'y_offset', 'timeout',
                     'red_line', 'yellow_line' }
@@ -339,7 +341,7 @@ if __name__ == '__main__':
 
     try:
         with open(configfile, 'rb') as f:
-            myargs.config=tomllib.load(f)
+            myargs.config=deepsloppy(tomllib.load(f))
     except FileNotFoundError as e:
         myargs.config={}
 

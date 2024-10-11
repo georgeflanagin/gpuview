@@ -36,7 +36,10 @@ red_line = 0.85
 timeout = 5
 
 # How we get the data.
-toolname = "nvidia-smi -q --xml-format"
+toolnames.gpu = "nvidia-smi -q --xml-format"
+toolnames.cpu = "cat /proc/loadavg"
+toolnames.static.cpu = "grep -c ^processor /proc/cpuinfo"
+toolnames.static.mem = "grep MemTotal /proc/meminfo"
 
 # Above this line, we show YELLOW.
 yellow_line = 0.7
