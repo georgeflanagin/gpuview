@@ -151,6 +151,27 @@ def get_gpu_stats(target:str=None) -> SloppyTree:
 
 
 @trap
+def get_static_info(config:SloppyTree) -> SloppyTree:
+    """
+    Before we collect dynamic data, we need the static parameters
+    of the computers we are querying.
+    """
+    global logger
+
+    t = SloppyTree()
+
+    logger.debug('gathering static data.')
+    for host in config.hosts:
+        t.host.cpu = int(dorunrun(config.toolnames.static.cpu,
+                        timeout=myargs.config.timeout,
+                        return_datatype=str))
+        t.host.mem = int(dorunrun(config.toolnames.static.mem,
+                        timeout=myargs.config.timeout,
+                        return_datatype=str).split()[1])<<20
+    return t
+
+
+@trap
 def proofread(config_info:SloppyTree) -> None:
     """
     We need a little logic checking to prevent runtime errors.
