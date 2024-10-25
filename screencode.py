@@ -118,12 +118,19 @@ def decorate_regions(idx:BlockIndex, config:SloppyTree, statics:SloppyTree,
         regions[i][0].addstr(5, int(w*0.7), "TEMP")
 
         for j, k in enumerate(t.keys(), start=6):
-            regions[i][0].addstr(j, 2, f"{j-5} {t[k].product_name[-8:]}")
-            regions[i][0].addstr(j, 12, str(t[k]["temperature.gpu_temp"]))
-            regions[i][0].addstr(j, 19, str(t[k]["gpu_power_readings.power_draw"]))
+            regions[i][0].addstr(j, 2, f"{j-5} {t[k].product_name[-8:].strip()}")
+            regions[i][0].addstr(j, int(w*0.7), de_unit(t[k]["temperature.gpu_temp"]))
+            regions[i][0].addstr(j, int(w*0.5), de_unit(t[k]["gpu_power_readings.power_draw"]))
 
     return regions
 
+
+@trap
+def de_unit(o:object) -> str:
+    try:
+        return str(o.split()[0])
+    except:
+        return str(o)
 
 @trap
 def populate_screen(myargs:argparse.Namespace,

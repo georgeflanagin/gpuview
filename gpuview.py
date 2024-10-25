@@ -126,13 +126,13 @@ def get_gpu_stats(target:str=None) -> SloppyTree:
     """
     global myargs, logger
 
-    cmd = myargs.config.toolname
+    cmd = myargs.config.toolnames.gpu
     if target and target not in ('localhost', here):
         cmd = f"ssh {target} '{cmd}'"
 
     result = dorunrun(cmd, timeout=myargs.config.timeout)
     if not result['OK']:
-        logger.error(f'No data for {target} because {result}')
+        logger.error(f'No data for {target} because {result}. {cmd=}')
         return SloppyTree()
 
     xml = ET.fromstring(result['stdout'])
